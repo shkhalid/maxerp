@@ -268,6 +268,101 @@ class LeaveRequestController extends Controller
     }
 
     /**
+     * Get monthly leave summary
+     *
+     * Returns a summary of leave requests for the current month including:
+     * - Total requests by status
+     * - Requests by leave type
+     * - Daily breakdown
+     * - Team member statistics
+     */
+    public function monthlySummary(Request $request): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+            $month = $request->get('month', Carbon::now()->format('Y-m'));
+            $startOfMonth = Carbon::parse($month.'-01')->startOfMonth();
+            $endOfMonth = Carbon::parse($month.'-01')->endOfMonth();
+
+            // Get all leave requests for the month
+            $leaveRequests = LeaveRequest::whereBetween('start_date', [$startOfMonth, $endOfMonth])
+                ->orWhereBetween('end_date', [$startOfMonth, $endOfMonth])
+                ->orWhere(function ($query) use ($startOfMonth, $endOfMonth) {
+                    $query->where('start_date', '<=', $startOfMonth)
+                        ->where('end_date', '>=', $endOfMonth);
+                })
+                ->with('user')
+                ->get();
+
+            // Summary by status
+            $statusSummary = $leaveRequests->groupBy('status')->map(function ($requests) {
+                return [
+                    'count' => $requests->count(),
+                    'total_days' => $requests->sum('days_requested'),
+                ];
+            });
+
+            // Summary by leave type
+            $typeSummary = $leaveRequests->groupBy('leave_type')->map(function ($requests) {
+                return [
+                    'count' => $requests->count(),
+                    'total_days' => $requests->sum('days_requested'),
+                ];
+            });
+
+            // Daily breakdown
+            $dailyBreakdown = [];
+            $current = $startOfMonth->copy();
+            while ($current->lte($endOfMonth)) {
+                $date = $current->toDateString();
+                $onLeave = $leaveRequests->filter(function ($request) use ($date) {
+                    return $request->status === 'approved' &&
+                           $request->start_date <= $date &&
+                           $request->end_date >= $date;
+                });
+
+                $dailyBreakdown[] = [
+                    'date' => $date,
+                    'day_name' => $current->format('l'),
+                    'on_leave_count' => $onLeave->count(),
+                    'on_leave_employees' => $onLeave->pluck('user.name')->toArray(),
+                ];
+
+                $current->addDay();
+            }
+
+            // Team statistics
+            $teamStats = [
+                'total_employees' => $user->role === 'manager' ?
+                    LeaveRequest::whereHas('user', function ($query) {
+                        $query->where('role', 'employee');
+                    })->distinct('user_id')->count() : 1,
+                'employees_with_leave' => $leaveRequests->pluck('user_id')->unique()->count(),
+                'most_common_leave_type' => $typeSummary->sortByDesc('count')->keys()->first(),
+                'average_days_per_request' => $leaveRequests->avg('days_requested'),
+            ];
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'month' => $month,
+                    'status_summary' => $statusSummary,
+                    'type_summary' => $typeSummary,
+                    'daily_breakdown' => $dailyBreakdown,
+                    'team_stats' => $teamStats,
+                    'total_requests' => $leaveRequests->count(),
+                    'total_days_requested' => $leaveRequests->sum('days_requested'),
+                ],
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching monthly summary: '.$e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
      * Update leave balance when request is approved
      */
     private function updateLeaveBalance(LeaveRequest $leaveRequest): void

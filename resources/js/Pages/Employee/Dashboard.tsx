@@ -35,19 +35,23 @@ import { Textarea } from "@/components/ui/textarea";
 import Header from "@/components/Header";
 import { Calendar, Clock, CheckCircle, XCircle, Plus } from "lucide-react";
 import { motion } from "framer-motion";
+import {
+    AuthProps,
+    LeaveBalance,
+    LeaveRequest,
+    LeaveRequestForm,
+    LeaveBalancesResponse,
+    LeaveRequestsResponse,
+} from "@/types/api";
 
-interface EmployeeDashboardProps {
-    auth: {
-        user: any;
-    };
-}
+interface EmployeeDashboardProps extends AuthProps {}
 
 function EmployeeDashboard({ auth }: EmployeeDashboardProps): JSX.Element {
     const [showLeaveForm, setShowLeaveForm] = useState(false);
-    const [leaveForm, setLeaveForm] = useState({
-        leaveType: "",
-        startDate: "",
-        endDate: "",
+    const [leaveForm, setLeaveForm] = useState<LeaveRequestForm>({
+        leave_type: "",
+        start_date: "",
+        end_date: "",
         reason: "",
     });
     const [leaveBalances, setLeaveBalances] = useState<any[]>([]);
@@ -66,13 +70,14 @@ function EmployeeDashboard({ auth }: EmployeeDashboardProps): JSX.Element {
 
             // Fetch leave balances and requests in parallel
             const [balancesResponse, requestsResponse] = await Promise.all([
-                axios.get("/api/v1/leave/balances"),
-                axios.get("/api/v1/leave/requests"),
+                axios.get<LeaveBalancesResponse>("/api/v1/leave/balances"),
+                axios.get<LeaveRequestsResponse>("/api/v1/leave/requests"),
             ]);
 
-            if (balancesResponse.data.success) {
+            if (balancesResponse.data.success && balancesResponse.data.data) {
+                // Format the data to match the expected structure
                 const formattedBalances = balancesResponse.data.data.map(
-                    (balance: any) => ({
+                    (balance: LeaveBalance) => ({
                         type:
                             balance.leave_type.charAt(0).toUpperCase() +
                             balance.leave_type.slice(1),
@@ -84,16 +89,17 @@ function EmployeeDashboard({ auth }: EmployeeDashboardProps): JSX.Element {
                 setLeaveBalances(formattedBalances);
             }
 
-            if (requestsResponse.data.success) {
+            if (requestsResponse.data.success && requestsResponse.data.data) {
+                // Format the data to match the expected structure
                 const formattedRequests = requestsResponse.data.data.map(
-                    (request: any) => ({
+                    (request: LeaveRequest) => ({
                         id: request.id,
                         type:
                             request.leave_type.charAt(0).toUpperCase() +
                             request.leave_type.slice(1),
                         startDate: request.start_date,
                         endDate: request.end_date,
-                        days: request.days_requested,
+                        days: request.days_requested || 1, // Ensure days is always a number
                         status: request.status,
                         reason: request.reason,
                     })
@@ -115,10 +121,10 @@ function EmployeeDashboard({ auth }: EmployeeDashboardProps): JSX.Element {
         }
     };
 
-    const validateLeaveForm = () => {
+    const validateLeaveForm = (): boolean => {
         const today = new Date().toISOString().split("T")[0];
 
-        if (!leaveForm.leaveType) {
+        if (!leaveForm.leave_type) {
             toast({
                 title: "Validation Error",
                 description: "Please select a leave type",
@@ -127,7 +133,7 @@ function EmployeeDashboard({ auth }: EmployeeDashboardProps): JSX.Element {
             return false;
         }
 
-        if (!leaveForm.startDate) {
+        if (!leaveForm.start_date) {
             toast({
                 title: "Validation Error",
                 description: "Please select a start date",
@@ -136,7 +142,7 @@ function EmployeeDashboard({ auth }: EmployeeDashboardProps): JSX.Element {
             return false;
         }
 
-        if (!leaveForm.endDate) {
+        if (!leaveForm.end_date) {
             toast({
                 title: "Validation Error",
                 description: "Please select an end date",
@@ -145,7 +151,7 @@ function EmployeeDashboard({ auth }: EmployeeDashboardProps): JSX.Element {
             return false;
         }
 
-        if (leaveForm.startDate < today) {
+        if (leaveForm.start_date < today) {
             toast({
                 title: "Validation Error",
                 description: "Start date cannot be in the past",
@@ -154,7 +160,7 @@ function EmployeeDashboard({ auth }: EmployeeDashboardProps): JSX.Element {
             return false;
         }
 
-        if (leaveForm.endDate < today) {
+        if (leaveForm.end_date < today) {
             toast({
                 title: "Validation Error",
                 description: "End date cannot be in the past",
@@ -163,7 +169,7 @@ function EmployeeDashboard({ auth }: EmployeeDashboardProps): JSX.Element {
             return false;
         }
 
-        if (leaveForm.endDate < leaveForm.startDate) {
+        if (leaveForm.end_date < leaveForm.start_date) {
             toast({
                 title: "Validation Error",
                 description: "End date cannot be before start date",
@@ -195,12 +201,7 @@ function EmployeeDashboard({ auth }: EmployeeDashboardProps): JSX.Element {
         setLoading(true);
 
         try {
-            const response = await axios.post("/api/v1/leave/apply", {
-                leave_type: leaveForm.leaveType,
-                start_date: leaveForm.startDate,
-                end_date: leaveForm.endDate,
-                reason: leaveForm.reason,
-            });
+            const response = await axios.post("/api/v1/leave/apply", leaveForm);
 
             if (response.data.success) {
                 // Show success message
@@ -210,9 +211,9 @@ function EmployeeDashboard({ auth }: EmployeeDashboardProps): JSX.Element {
                 });
                 setShowLeaveForm(false);
                 setLeaveForm({
-                    leaveType: "",
-                    startDate: "",
-                    endDate: "",
+                    leave_type: "",
+                    start_date: "",
+                    end_date: "",
                     reason: "",
                 });
                 // Refresh data
@@ -362,11 +363,11 @@ function EmployeeDashboard({ auth }: EmployeeDashboardProps): JSX.Element {
                                                 Leave Type
                                             </Label>
                                             <Select
-                                                value={leaveForm.leaveType}
+                                                value={leaveForm.leave_type}
                                                 onValueChange={(value) =>
                                                     setLeaveForm({
                                                         ...leaveForm,
-                                                        leaveType: value,
+                                                        leave_type: value,
                                                     })
                                                 }
                                                 data-testid="leave-type-select"
@@ -403,20 +404,21 @@ function EmployeeDashboard({ auth }: EmployeeDashboardProps): JSX.Element {
                                             <Input
                                                 id="startDate"
                                                 type="date"
-                                                value={leaveForm.startDate}
+                                                value={leaveForm.start_date}
                                                 onChange={(e) => {
                                                     const newStartDate =
                                                         e.target.value;
                                                     setLeaveForm({
                                                         ...leaveForm,
-                                                        startDate: newStartDate,
+                                                        start_date:
+                                                            newStartDate,
                                                         // Clear end date if it's before the new start date
-                                                        endDate:
-                                                            leaveForm.endDate &&
-                                                            leaveForm.endDate <
+                                                        end_date:
+                                                            leaveForm.end_date &&
+                                                            leaveForm.end_date <
                                                                 newStartDate
                                                                 ? ""
-                                                                : leaveForm.endDate,
+                                                                : leaveForm.end_date,
                                                     });
                                                 }}
                                                 min={
@@ -436,15 +438,16 @@ function EmployeeDashboard({ auth }: EmployeeDashboardProps): JSX.Element {
                                             <Input
                                                 id="endDate"
                                                 type="date"
-                                                value={leaveForm.endDate}
+                                                value={leaveForm.end_date}
                                                 onChange={(e) =>
                                                     setLeaveForm({
                                                         ...leaveForm,
-                                                        endDate: e.target.value,
+                                                        end_date:
+                                                            e.target.value,
                                                     })
                                                 }
                                                 min={
-                                                    leaveForm.startDate ||
+                                                    leaveForm.start_date ||
                                                     new Date()
                                                         .toISOString()
                                                         .split("T")[0]

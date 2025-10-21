@@ -52,6 +52,9 @@ Route::middleware(['auth'])->group(function () {
         Route::get('leave/pending', [\App\Http\Controllers\Api\LeaveRequestController::class, 'pending']);
         Route::get('leave/on-leave-today', [\App\Http\Controllers\Api\LeaveRequestController::class, 'onLeaveToday']);
         Route::post('leave/approve/{id}', [\App\Http\Controllers\Api\LeaveRequestController::class, 'approve']);
+
+        // Summary routes (available to both employees and managers)
+        Route::get('leave/summary', [\App\Http\Controllers\Api\LeaveRequestController::class, 'monthlySummary']);
     });
 
 });

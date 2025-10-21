@@ -28,8 +28,18 @@ export function formatDateRange(
     endDate: string,
     days: number
 ): string {
+    // Handle invalid dates
+    if (!startDate || !endDate || isNaN(days)) {
+        return "Invalid date range";
+    }
+
     const start = new Date(startDate);
     const end = new Date(endDate);
+
+    // Check if dates are valid
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+        return "Invalid date range";
+    }
 
     // If same year, show: "Oct 21 - Oct 23, 2025"
     if (start.getFullYear() === end.getFullYear()) {

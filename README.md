@@ -127,13 +127,14 @@ npm run dev
 -   `GET /api/v1/leave/pending` - Get pending requests (Manager)
 -   `GET /api/v1/leave/on-leave-today` - Get team members on leave today (Manager)
 -   `POST /api/v1/leave/approve/{id}` - Approve/reject leave request (Manager)
+-   `GET /api/v1/leave/summary` - Get monthly leave summary (Both)
 
 ## Assumptions & Business Rules
 
 ### User Roles
 
 -   **Employee**: Can submit leave requests, view their balances and request history
--   **Manager**: Can approve/reject leave requests, view team leave status, see pending requests
+-   **Manager**: Can approve/reject leave requests, view team leave status, see pending requests, access comprehensive monthly analytics
 
 ### Leave Types
 
@@ -171,8 +172,12 @@ npm run dev
 
 **Frontend (React + TypeScript):**
 
+-   **TypeScript Types**: Comprehensive type definitions for all API responses
+-   **Component Architecture**: Reusable UI components with proper typing
+-   **State Management**: React hooks for local state management
+-   **Form Validation**: Client-side validation with TypeScript support
+-   **API Integration**: Typed Axios requests with proper error handling
 -   **Component-Based**: Reusable UI components with Radix UI primitives
--   **State Management**: React hooks for local state, no external state management needed
 -   **Type Safety**: TypeScript interfaces for API responses and component props
 -   **User Experience**: Loading states, error handling, and toast notifications
 

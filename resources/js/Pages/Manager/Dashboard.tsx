@@ -25,6 +25,7 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog";
 import Header from "@/components/Header";
+import { MonthlySummary } from "@/components/MonthlySummary";
 import {
     CheckCircle,
     XCircle,
@@ -47,6 +48,7 @@ function ManagerDashboard({ auth }: ManagerDashboardProps): JSX.Element {
     const [pendingRequests, setPendingRequests] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const [onLeaveToday, setOnLeaveToday] = useState(0);
+    const [showMonthlySummary, setShowMonthlySummary] = useState(false);
     const { toast } = useToast();
 
     // Fetch pending requests and on leave today count
@@ -218,7 +220,7 @@ function ManagerDashboard({ auth }: ManagerDashboardProps): JSX.Element {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.1 }}
                         >
-                            <Card>
+                            <Card className="h-32">
                                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                                     <CardTitle className="text-sm font-medium">
                                         Pending Requests
@@ -241,7 +243,7 @@ function ManagerDashboard({ auth }: ManagerDashboardProps): JSX.Element {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.2 }}
                         >
-                            <Card>
+                            <Card className="h-32">
                                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                                     <CardTitle className="text-sm font-medium">
                                         Team Members
@@ -262,7 +264,10 @@ function ManagerDashboard({ auth }: ManagerDashboardProps): JSX.Element {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.3 }}
                         >
-                            <Card>
+                            <Card
+                                className="h-32 cursor-pointer hover:shadow-lg transition-shadow duration-200"
+                                onClick={() => setShowMonthlySummary(true)}
+                            >
                                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                                     <CardTitle className="text-sm font-medium">
                                         This Month
@@ -274,6 +279,9 @@ function ManagerDashboard({ auth }: ManagerDashboardProps): JSX.Element {
                                     <p className="text-xs text-muted-foreground">
                                         Approved requests
                                     </p>
+                                    <p className="text-xs text-blue-600 mt-1">
+                                        Click to view summary →
+                                    </p>
                                 </CardContent>
                             </Card>
                         </motion.div>
@@ -283,7 +291,7 @@ function ManagerDashboard({ auth }: ManagerDashboardProps): JSX.Element {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.4 }}
                         >
-                            <Card>
+                            <Card className="h-32">
                                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                                     <CardTitle className="text-sm font-medium">
                                         On Leave Today
@@ -561,6 +569,27 @@ function ManagerDashboard({ auth }: ManagerDashboardProps): JSX.Element {
                                     </div>
                                 </div>
                             )}
+                        </DialogContent>
+                    </Dialog>
+
+                    {/* Monthly Summary Dialog */}
+                    <Dialog
+                        open={showMonthlySummary}
+                        onOpenChange={setShowMonthlySummary}
+                    >
+                        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+                            <DialogHeader>
+                                <DialogTitle className="text-2xl font-bold">
+                                    Monthly Leave Summary
+                                </DialogTitle>
+                                <DialogDescription>
+                                    Comprehensive analytics and insights for
+                                    your team's leave patterns
+                                </DialogDescription>
+                            </DialogHeader>
+                            <div className="mt-4">
+                                <MonthlySummary />
+                            </div>
                         </DialogContent>
                     </Dialog>
                 </div>
