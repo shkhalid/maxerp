@@ -4,6 +4,9 @@ import axios from "axios";
 import { formatDateRange } from "@/lib/dateUtils";
 import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
+import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
+import { StatusBadge } from "@/components/ui/status-badge";
 import {
     Card,
     CardContent,
@@ -256,28 +259,6 @@ function EmployeeDashboard({ auth }: EmployeeDashboardProps): JSX.Element {
         }
     };
 
-    const getStatusIcon = (status: string) => {
-        switch (status) {
-            case "approved":
-                return <CheckCircle className="w-4 h-4 text-green-500" />;
-            case "rejected":
-                return <XCircle className="w-4 h-4 text-red-500" />;
-            default:
-                return <Clock className="w-4 h-4 text-yellow-500" />;
-        }
-    };
-
-    const getStatusColor = (status: string) => {
-        switch (status) {
-            case "approved":
-                return "bg-green-100 text-green-800";
-            case "rejected":
-                return "bg-red-100 text-red-800";
-            default:
-                return "bg-yellow-100 text-yellow-800";
-        }
-    };
-
     return (
         <>
             <Head title="Employee Dashboard - MaxERP" />
@@ -308,12 +289,12 @@ function EmployeeDashboard({ auth }: EmployeeDashboardProps): JSX.Element {
                                   >
                                       <Card>
                                           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                              <div className="h-4 bg-gray-200 rounded animate-pulse w-20"></div>
-                                              <div className="h-4 w-4 bg-gray-200 rounded animate-pulse"></div>
+                                              <LoadingSkeleton className="h-4 w-20" />
+                                              <LoadingSkeleton className="h-4 w-4 rounded-full" />
                                           </CardHeader>
                                           <CardContent>
-                                              <div className="h-8 bg-gray-200 rounded animate-pulse mb-2"></div>
-                                              <div className="h-3 bg-gray-200 rounded animate-pulse w-3/4"></div>
+                                              <LoadingSkeleton className="h-8 w-16 mb-2" />
+                                              <LoadingSkeleton className="h-3 w-3/4" />
                                           </CardContent>
                                       </Card>
                                   </motion.div>
@@ -520,13 +501,13 @@ function EmployeeDashboard({ auth }: EmployeeDashboardProps): JSX.Element {
                                                 className="flex items-center justify-between p-4 border rounded-lg"
                                             >
                                                 <div className="flex items-center space-x-4">
-                                                    <div className="w-4 h-4 bg-gray-200 rounded-full animate-pulse"></div>
+                                                    <LoadingSkeleton className="w-4 h-4 rounded-full" />
                                                     <div>
-                                                        <div className="h-4 bg-gray-200 rounded animate-pulse w-24 mb-2"></div>
-                                                        <div className="h-3 bg-gray-200 rounded animate-pulse w-32"></div>
+                                                        <LoadingSkeleton className="h-4 w-24 mb-2" />
+                                                        <LoadingSkeleton className="h-3 w-32" />
                                                     </div>
                                                 </div>
-                                                <div className="h-6 bg-gray-200 rounded animate-pulse w-16"></div>
+                                                <LoadingSkeleton className="h-6 w-16" />
                                             </div>
                                         )
                                     )
@@ -539,7 +520,6 @@ function EmployeeDashboard({ auth }: EmployeeDashboardProps): JSX.Element {
                                             className="flex items-center justify-between p-4 border rounded-lg"
                                         >
                                             <div className="flex items-center space-x-4">
-                                                {getStatusIcon(request.status)}
                                                 <div>
                                                     <p className="font-medium">
                                                         {request.type} Leave
@@ -556,19 +536,14 @@ function EmployeeDashboard({ auth }: EmployeeDashboardProps): JSX.Element {
                                                     </p>
                                                 </div>
                                             </div>
-                                            <span
-                                                className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
-                                                    request.status
-                                                )}`}
-                                            >
-                                                {request.status}
-                                            </span>
+                                            <StatusBadge
+                                                status={request.status}
+                                            />
                                         </motion.div>
                                     ))
                                 ) : (
-                                    // Empty state
-                                    <div className="flex flex-col items-center justify-center py-12 text-center">
-                                        <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                                    <EmptyState
+                                        icon={
                                             <svg
                                                 className="w-8 h-8 text-gray-400"
                                                 fill="none"
@@ -582,23 +557,15 @@ function EmployeeDashboard({ auth }: EmployeeDashboardProps): JSX.Element {
                                                     d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
                                                 />
                                             </svg>
-                                        </div>
-                                        <h3 className="text-lg font-medium text-gray-900 mb-2">
-                                            No Leave Requests Yet
-                                        </h3>
-                                        <p className="text-gray-500 mb-4">
-                                            You haven't submitted any leave
-                                            requests yet.
-                                        </p>
-                                        <Button
-                                            onClick={() =>
-                                                setShowLeaveForm(true)
-                                            }
-                                            className="bg-blue-600 hover:bg-blue-700"
-                                        >
-                                            Submit Your First Request
-                                        </Button>
-                                    </div>
+                                        }
+                                        title="No Leave Requests Yet"
+                                        description="You haven't submitted any leave requests yet."
+                                        action={{
+                                            label: "Submit Your First Request",
+                                            onClick: () =>
+                                                setShowLeaveForm(true),
+                                        }}
+                                    />
                                 )}
                             </div>
                         </CardContent>

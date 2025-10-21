@@ -22,7 +22,13 @@ class LeaveRequestController extends Controller
     }
 
     /**
-     * Apply for leave (Employee)
+     * Apply for leave request
+     *
+     * Validates leave request data, checks for overlaps, verifies leave balance,
+     * and creates a new leave request for the authenticated user.
+     *
+     * @param  Request  $request  Contains: leave_type, start_date, end_date, reason
+     * @return JsonResponse Success with leave request data or validation errors
      */
     public function apply(Request $request): JsonResponse
     {

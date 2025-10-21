@@ -1,6 +1,6 @@
-# MaxERP - Laravel 12 Web Application
+# MaxERP - Leave Management System
 
-This is a Laravel 12 project with simple session-based authentication for managing application.
+A modern HR leave management system built with Laravel 12 and React, featuring role-based access control, real-time notifications, and an intuitive user interface.
 
 ## Project Information
 
@@ -12,42 +12,246 @@ This is a Laravel 12 project with simple session-based authentication for managi
 
 ## Features
 
--   **Session Authentication** - Simple and secure session-based authentication
+### Core Functionality
+
+-   **Leave Request Management** - Employees can submit, view, and track leave requests
+-   **Manager Approval Workflow** - Managers can review, approve, or reject leave requests
+-   **Leave Balance Tracking** - Real-time tracking of vacation, sick, and personal leave balances
+-   **Role-Based Access Control** - Separate dashboards for employees and managers
+-   **Real-Time Notifications** - Toast notifications for all user actions
+
+### Technical Features
+
+-   **Session Authentication** - Secure session-based authentication system
 -   **React with TypeScript** - Modern SPA with full type safety
--   **Inertia.js** - Seamless server-side routing
+-   **Inertia.js** - Seamless server-side routing with React
 -   **Tailwind CSS** - Utility-first CSS framework with custom components
 -   **Radix UI Components** - Accessible, unstyled UI components
--   **User Registration & Login** - Complete authentication flow
--   **Protected Routes** - Secure web routes with authentication
 -   **Responsive Design** - Mobile-friendly interface
+-   **Date Validation** - Frontend and backend validation for leave dates
+-   **Loading States** - Skeleton loaders and loading indicators
 
-## Web Routes
+## Setup Instructions
 
-### Authentication Routes
+### Prerequisites
 
--   `GET /register` - User registration page
--   `POST /register` - Process user registration
--   `GET /login` - User login page
+-   PHP 8.2 or higher
+-   Composer
+-   Node.js 18+ and npm
+-   Laravel Herd (recommended) or PHP built-in server
+
+### Installation
+
+1. **Clone the repository**
+
+    ```bash
+    git clone <repository-url>
+    cd maxerp
+    ```
+
+2. **Install PHP dependencies**
+
+    ```bash
+    composer install
+    ```
+
+3. **Install Node.js dependencies**
+
+    ```bash
+    npm install
+    ```
+
+4. **Environment setup**
+
+    ```bash
+    cp .env.example .env
+    php artisan key:generate
+    ```
+
+5. **Database setup**
+
+    ```bash
+    php artisan migrate
+    php artisan db:seed
+    ```
+
+6. **Build frontend assets**
+    ```bash
+    npm run build
+    ```
+
+### Development Server
+
+**Using Laravel Herd (Recommended):**
+
+-   Configure Herd to point to your project directory
+-   Access at: https://maxerp.test
+
+**Using PHP built-in server:**
+
+```bash
+php artisan serve
+# Access at: http://localhost:8000
+```
+
+**Frontend development with hot reload:**
+
+```bash
+npm run dev
+# Vite dev server: http://localhost:3000
+```
+
+## Application Routes
+
+### Public Routes
+
+-   `GET /` - Landing page (accessible to all)
+-   `GET /login` - User login page (redirects if authenticated)
+-   `GET /register` - User registration page (redirects if authenticated)
 -   `POST /login` - Process user login
+-   `POST /register` - Process user registration
 -   `POST /logout` - Logout user
 
-### Application Routes
+### Protected Routes (Authentication Required)
 
--   `GET /` - Landing page
--   `GET /dashboard` - User dashboard (protected)
+-   `GET /dashboard` - Role-based dashboard redirect
+-   `GET /employee/dashboard` - Employee dashboard
+-   `GET /manager/dashboard` - Manager dashboard
+-   `GET /profile` - User profile settings
+
+### API Routes (Session-based Authentication)
+
+-   `POST /api/v1/leave/apply` - Submit leave request (Employee)
+-   `GET /api/v1/leave/balances` - Get leave balances (Employee)
+-   `GET /api/v1/leave/requests` - Get user's leave requests (Employee)
+-   `GET /api/v1/leave/pending` - Get pending requests (Manager)
+-   `GET /api/v1/leave/on-leave-today` - Get team members on leave today (Manager)
+-   `POST /api/v1/leave/approve/{id}` - Approve/reject leave request (Manager)
+
+## Assumptions & Business Rules
+
+### User Roles
+
+-   **Employee**: Can submit leave requests, view their balances and request history
+-   **Manager**: Can approve/reject leave requests, view team leave status, see pending requests
+
+### Leave Types
+
+-   **Vacation**: 20 days per year (default)
+-   **Sick Leave**: 10 days per year (default)
+-   **Personal**: 5 days per year (default)
+
+### Business Rules
+
+-   Leave requests cannot be submitted for past dates
+-   Leave requests cannot overlap with existing approved requests
+-   Managers can only approve/reject requests (not edit them)
+-   Leave balances are checked before approval
+-   All dates are validated on both frontend and backend
+
+### Data Validation
+
+-   Start date must be today or future
+-   End date must be after or equal to start date
+-   Leave type is required
+-   Reason is required for all leave requests
+-   No overlapping leave periods for the same user
+
+## Technical Approach
+
+### Architecture Decisions
+
+**Backend (Laravel 12):**
+
+-   **Clean Architecture**: Controllers handle HTTP requests, Services handle business logic
+-   **Eloquent ORM**: For database operations with proper relationships
+-   **Session Authentication**: Simple, secure authentication without JWT complexity
+-   **API Design**: RESTful endpoints with consistent JSON responses
+-   **Validation**: Laravel validation rules with custom error messages
+
+**Frontend (React + TypeScript):**
+
+-   **Component-Based**: Reusable UI components with Radix UI primitives
+-   **State Management**: React hooks for local state, no external state management needed
+-   **Type Safety**: TypeScript interfaces for API responses and component props
+-   **User Experience**: Loading states, error handling, and toast notifications
+
+**Database Design:**
+
+-   **Users Table**: Basic user information with role-based access
+-   **Leave Requests**: Core leave request data with status tracking
+-   **Leave Balances**: User leave balances by type and year
+-   **Relationships**: Proper foreign key constraints and cascading deletes
+
+### Code Organization
+
+```
+app/
+├── Http/Controllers/
+│   ├── AuthController.php          # Authentication logic
+│   ├── DashboardController.php     # Role-based routing
+│   ├── EmployeeController.php     # Employee dashboard
+│   ├── ManagerController.php     # Manager dashboard
+│   └── Api/LeaveRequestController.php # Leave management API
+├── Models/
+│   ├── User.php                    # User model with role support
+│   ├── LeaveRequest.php           # Leave request model
+│   └── LeaveBalance.php           # Leave balance model
+├── Services/
+│   └── LeaveValidationService.php  # Business logic for leave validation
+└── Http/Middleware/
+    └── RedirectIfAuthenticated.php # Guest middleware
+
+resources/js/
+├── Pages/
+│   ├── Landing.tsx                 # Public landing page
+│   ├── Auth/Login.tsx             # Login page
+│   ├── Auth/Register.tsx          # Registration page
+│   ├── Employee/Dashboard.tsx     # Employee interface
+│   └── Manager/Dashboard.tsx      # Manager interface
+├── components/
+│   ├── ui/                        # Reusable UI components
+│   └── Header.tsx                 # Navigation component
+└── lib/
+    └── dateUtils.ts               # Date formatting utilities
+```
 
 ## Development
 
 ### Running Tests
 
 ```bash
+# Run PHP tests
 php artisan test
+
+# Run frontend tests (when implemented)
+npm run test
 ```
 
-### Database Migrations
+### Database Operations
 
 ```bash
+# Run migrations
 php artisan migrate
+
+# Seed test data
+php artisan db:seed
+
+# Reset database
+php artisan migrate:fresh --seed
+```
+
+### Frontend Development
+
+```bash
+# Start development server with hot reload
+npm run dev
+
+# Build for production
+npm run build
+
+# Type checking
+npm run type-check
 ```
 
 ## Frontend Development
