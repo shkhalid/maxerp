@@ -22,14 +22,18 @@ class LeaveBalanceSeeder extends Seeder
             $totalDays = ['vacation' => 20, 'sick' => 10, 'personal' => 5];
 
             foreach ($leaveTypes as $type) {
-                LeaveBalance::create([
-                    'user_id' => $user->id,
-                    'leave_type' => $type,
-                    'total_days' => $totalDays[$type],
-                    'used_days' => 0,
-                    'remaining_days' => $totalDays[$type],
-                    'year' => $currentYear,
-                ]);
+                LeaveBalance::updateOrCreate(
+                    [
+                        'user_id' => $user->id,
+                        'leave_type' => $type,
+                        'year' => $currentYear,
+                    ],
+                    [
+                        'total_days' => $totalDays[$type],
+                        'used_days' => 0,
+                        'remaining_days' => $totalDays[$type],
+                    ]
+                );
             }
         }
     }

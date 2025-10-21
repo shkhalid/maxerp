@@ -66,9 +66,21 @@ class LeaveRequestController extends Controller
 
         // Check leave balance
         if (! $this->validationService->validateLeaveBalance($user->id, $daysRequested, $data['leave_type'])) {
+            // Get the actual balance for debugging
+            $balance = \App\Models\LeaveBalance::where('user_id', $user->id)
+                ->where('leave_type', $data['leave_type'])
+                ->where('year', now()->year)
+                ->first();
+
             return response()->json([
                 'success' => false,
-                'message' => 'Insufficient leave balance',
+                'message' => 'Insufficient leave balance. You have '.($balance ? $balance->remaining_days : 0).' days remaining.',
+                'debug' => [
+                    'user_id' => $user->id,
+                    'leave_type' => $data['leave_type'],
+                    'days_requested' => $daysRequested,
+                    'balance' => $balance ? $balance->toArray() : null,
+                ],
             ], 422);
         }
 
@@ -182,6 +194,70 @@ class LeaveRequestController extends Controller
             'success' => true,
             'message' => "Leave request {$status} successfully",
             'data' => $leaveRequest->load(['user', 'approver']),
+        ]);
+    }
+
+    /**
+     * Get user's leave balances
+     */
+    public function balances(): JsonResponse
+    {
+        $user = Auth::user();
+        $currentYear = now()->year;
+
+        $balances = LeaveBalance::where('user_id', $user->id)
+            ->where('year', $currentYear)
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $balances,
+        ]);
+    }
+
+    /**
+     * Get user's leave requests
+     */
+    public function userRequests(): JsonResponse
+    {
+        $user = Auth::user();
+
+        $requests = LeaveRequest::where('user_id', $user->id)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $requests,
+        ]);
+    }
+
+    /**
+     * Get count of team members on leave today
+     */
+    public function onLeaveToday(Request $request): JsonResponse
+    {
+        $user = Auth::user();
+
+        if ($user->role !== 'manager') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized. Only managers can view team leave status.',
+            ], 403);
+        }
+
+        $date = $request->input('date', now()->toDateString());
+
+        // Use date comparison that handles both date and datetime formats
+        $count = LeaveRequest::where('status', 'approved')
+            ->whereDate('start_date', '<=', $date)
+            ->whereDate('end_date', '>=', $date)
+            ->count();
+
+        return response()->json([
+            'success' => true,
+            'count' => $count,
+            'date' => $date,
         ]);
     }
 

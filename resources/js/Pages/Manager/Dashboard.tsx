@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Head } from "@inertiajs/react";
 import axios from "axios";
+import { formatDateRange, formatDate } from "@/lib/dateUtils";
+import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import {
     Card,
@@ -37,63 +39,70 @@ interface ManagerDashboardProps {
 function ManagerDashboard({ auth }: ManagerDashboardProps): JSX.Element {
     const [selectedRequest, setSelectedRequest] = useState<any>(null);
     const [showApprovalDialog, setShowApprovalDialog] = useState(false);
-    const [pendingRequests, setPendingRequests] = useState([]);
+    const [pendingRequests, setPendingRequests] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
+    const [onLeaveToday, setOnLeaveToday] = useState(0);
+    const { toast } = useToast();
 
-    // Fetch pending requests
+    // Fetch pending requests and on leave today count
     useEffect(() => {
         fetchPendingRequests();
+        fetchOnLeaveToday();
     }, []);
 
     const fetchPendingRequests = async () => {
         try {
+            setLoading(true);
             const response = await axios.get("/api/v1/leave/pending");
             if (response.data.success) {
-                setPendingRequests(response.data.data);
+                // Format the data to match the expected structure
+                const formattedRequests = response.data.data.map(
+                    (request: any) => ({
+                        id: request.id,
+                        employee: {
+                            name: request.user.name,
+                            email: request.user.email,
+                            department: "Engineering", // You might want to add department to user model
+                        },
+                        leaveType:
+                            request.leave_type.charAt(0).toUpperCase() +
+                            request.leave_type.slice(1),
+                        startDate: request.start_date,
+                        endDate: request.end_date,
+                        days: request.days_requested,
+                        reason: request.reason,
+                        submittedAt: request.created_at,
+                        leaveBalance: {
+                            vacation: 15, // You might want to fetch this from API
+                            sick: 8,
+                            personal: 4,
+                        },
+                    })
+                );
+                setPendingRequests(formattedRequests);
             }
         } catch (error) {
             console.error("Error fetching pending requests:", error);
             // Fallback to mock data
-            setPendingRequests([
-                {
-                    id: 1,
-                    employee: {
-                        name: "John Doe",
-                        email: "john@company.com",
-                        department: "Engineering",
-                    },
-                    leaveType: "Vacation",
-                    startDate: "2024-02-15",
-                    endDate: "2024-02-20",
-                    days: 5,
-                    reason: "Family vacation",
-                    submittedAt: "2024-01-15",
-                    leaveBalance: {
-                        vacation: 15,
-                        sick: 8,
-                        personal: 4,
-                    },
-                },
-                {
-                    id: 2,
-                    employee: {
-                        name: "Jane Smith",
-                        email: "jane@company.com",
-                        department: "Marketing",
-                    },
-                    leaveType: "Sick",
-                    startDate: "2024-01-25",
-                    endDate: "2024-01-25",
-                    days: 1,
-                    reason: "Doctor appointment",
-                    submittedAt: "2024-01-20",
-                    leaveBalance: {
-                        vacation: 12,
-                        sick: 7,
-                        personal: 3,
-                    },
-                },
-            ]);
+            setPendingRequests([]);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const fetchOnLeaveToday = async () => {
+        try {
+            const today = new Date().toISOString().split("T")[0];
+            const response = await axios.get(
+                `/api/v1/leave/on-leave-today?date=${today}`
+            );
+            if (response.data.success) {
+                setOnLeaveToday(response.data.count);
+            }
+        } catch (error) {
+            console.error("Error fetching on leave today count:", error);
+            // Fallback to 0 if API fails
+            setOnLeaveToday(0);
         }
     };
 
@@ -108,18 +117,29 @@ function ManagerDashboard({ auth }: ManagerDashboardProps): JSX.Element {
             );
 
             if (response.data.success) {
-                alert("Leave request approved successfully!");
+                toast({
+                    title: "Success",
+                    description: "Leave request approved successfully!",
+                });
                 setShowApprovalDialog(false);
                 setSelectedRequest(null);
                 fetchPendingRequests(); // Refresh the list
             } else {
-                alert("Error: " + response.data.message);
+                toast({
+                    title: "Error",
+                    description: response.data.message,
+                    variant: "destructive",
+                });
             }
         } catch (error: any) {
             console.error("Error approving request:", error);
             const errorMessage =
                 error.response?.data?.message || "An error occurred";
-            alert("Error: " + errorMessage);
+            toast({
+                title: "Error",
+                description: errorMessage,
+                variant: "destructive",
+            });
         } finally {
             setLoading(false);
         }
@@ -136,18 +156,29 @@ function ManagerDashboard({ auth }: ManagerDashboardProps): JSX.Element {
             );
 
             if (response.data.success) {
-                alert("Leave request rejected successfully!");
+                toast({
+                    title: "Success",
+                    description: "Leave request rejected successfully!",
+                });
                 setShowApprovalDialog(false);
                 setSelectedRequest(null);
                 fetchPendingRequests(); // Refresh the list
             } else {
-                alert("Error: " + response.data.message);
+                toast({
+                    title: "Error",
+                    description: response.data.message,
+                    variant: "destructive",
+                });
             }
         } catch (error: any) {
             console.error("Error rejecting request:", error);
             const errorMessage =
                 error.response?.data?.message || "An error occurred";
-            alert("Error: " + errorMessage);
+            toast({
+                title: "Error",
+                description: errorMessage,
+                variant: "destructive",
+            });
         } finally {
             setLoading(false);
         }
@@ -266,7 +297,9 @@ function ManagerDashboard({ auth }: ManagerDashboardProps): JSX.Element {
                                     <Clock className="h-4 w-4 text-muted-foreground" />
                                 </CardHeader>
                                 <CardContent>
-                                    <div className="text-2xl font-bold">3</div>
+                                    <div className="text-2xl font-bold">
+                                        {onLeaveToday}
+                                    </div>
                                     <p className="text-xs text-muted-foreground">
                                         Team members
                                     </p>
@@ -286,148 +319,231 @@ function ManagerDashboard({ auth }: ManagerDashboardProps): JSX.Element {
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-4">
-                                {pendingRequests.map((request, index) => (
-                                    <motion.div
-                                        key={request.id}
-                                        initial={{ opacity: 0, x: -20 }}
-                                        animate={{ opacity: 1, x: 0 }}
-                                        transition={{ delay: index * 0.1 }}
-                                        className="border rounded-lg p-6"
-                                    >
-                                        <div className="flex items-start justify-between">
-                                            <div className="flex-1">
-                                                <div className="flex items-center space-x-4 mb-4">
-                                                    <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                                                        <span className="text-blue-600 font-semibold">
-                                                            {request.employee.name.charAt(
-                                                                0
-                                                            )}
-                                                        </span>
+                                {loading ? (
+                                    // Loading skeleton
+                                    Array.from({ length: 2 }).map(
+                                        (_, index) => (
+                                            <div
+                                                key={index}
+                                                className="border rounded-lg p-6"
+                                            >
+                                                <div className="flex items-start justify-between">
+                                                    <div className="flex-1">
+                                                        <div className="flex items-center space-x-4 mb-4">
+                                                            <div className="w-10 h-10 bg-gray-200 rounded-full animate-pulse"></div>
+                                                            <div>
+                                                                <div className="h-4 bg-gray-200 rounded animate-pulse w-24 mb-2"></div>
+                                                                <div className="h-3 bg-gray-200 rounded animate-pulse w-32"></div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                                            <div className="h-3 bg-gray-200 rounded animate-pulse w-20"></div>
+                                                            <div className="h-3 bg-gray-200 rounded animate-pulse w-24"></div>
+                                                            <div className="h-3 bg-gray-200 rounded animate-pulse w-16"></div>
+                                                            <div className="h-3 bg-gray-200 rounded animate-pulse w-28"></div>
+                                                        </div>
                                                     </div>
-                                                    <div>
-                                                        <h3 className="font-semibold text-gray-900">
-                                                            {
-                                                                request.employee
-                                                                    .name
-                                                            }
-                                                        </h3>
-                                                        <p className="text-sm text-gray-600">
-                                                            {
-                                                                request.employee
-                                                                    .email
-                                                            }{" "}
-                                                            •{" "}
-                                                            {
-                                                                request.employee
-                                                                    .department
-                                                            }
-                                                        </p>
-                                                    </div>
-                                                </div>
-
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                                                    <div>
-                                                        <p className="text-sm font-medium text-gray-700">
-                                                            Leave Type
-                                                        </p>
-                                                        <p className="text-sm text-gray-900">
-                                                            {request.leaveType}
-                                                        </p>
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-sm font-medium text-gray-700">
-                                                            Duration
-                                                        </p>
-                                                        <p className="text-sm text-gray-900">
-                                                            {request.startDate}{" "}
-                                                            - {request.endDate}{" "}
-                                                            ({request.days}{" "}
-                                                            days)
-                                                        </p>
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-sm font-medium text-gray-700">
-                                                            Reason
-                                                        </p>
-                                                        <p className="text-sm text-gray-900">
-                                                            {request.reason}
-                                                        </p>
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-sm font-medium text-gray-700">
-                                                            Submitted
-                                                        </p>
-                                                        <p className="text-sm text-gray-900">
-                                                            {
-                                                                request.submittedAt
-                                                            }
-                                                        </p>
-                                                    </div>
-                                                </div>
-
-                                                <div className="bg-gray-50 rounded-lg p-4">
-                                                    <p className="text-sm font-medium text-gray-700 mb-2">
-                                                        Employee Leave Balance
-                                                    </p>
-                                                    <div className="flex space-x-4 text-sm">
-                                                        <span>
-                                                            Vacation:{" "}
-                                                            {
-                                                                request
-                                                                    .leaveBalance
-                                                                    .vacation
-                                                            }{" "}
-                                                            days
-                                                        </span>
-                                                        <span>
-                                                            Sick:{" "}
-                                                            {
-                                                                request
-                                                                    .leaveBalance
-                                                                    .sick
-                                                            }{" "}
-                                                            days
-                                                        </span>
-                                                        <span>
-                                                            Personal:{" "}
-                                                            {
-                                                                request
-                                                                    .leaveBalance
-                                                                    .personal
-                                                            }{" "}
-                                                            days
-                                                        </span>
+                                                    <div className="flex space-x-2 ml-4">
+                                                        <div className="h-8 bg-gray-200 rounded animate-pulse w-20"></div>
+                                                        <div className="h-8 bg-gray-200 rounded animate-pulse w-16"></div>
                                                     </div>
                                                 </div>
                                             </div>
+                                        )
+                                    )
+                                ) : pendingRequests.length > 0 ? (
+                                    pendingRequests.map((request, index) => (
+                                        <motion.div
+                                            key={request.id}
+                                            initial={{ opacity: 0, x: -20 }}
+                                            animate={{ opacity: 1, x: 0 }}
+                                            transition={{ delay: index * 0.1 }}
+                                            className="border rounded-lg p-6"
+                                        >
+                                            <div className="flex items-start justify-between">
+                                                <div className="flex-1">
+                                                    <div className="flex items-center space-x-4 mb-4">
+                                                        <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                                                            <span className="text-blue-600 font-semibold">
+                                                                {request.employee.name.charAt(
+                                                                    0
+                                                                )}
+                                                            </span>
+                                                        </div>
+                                                        <div>
+                                                            <h3 className="font-semibold text-gray-900">
+                                                                {
+                                                                    request
+                                                                        .employee
+                                                                        .name
+                                                                }
+                                                            </h3>
+                                                            <p className="text-sm text-gray-600">
+                                                                {
+                                                                    request
+                                                                        .employee
+                                                                        .email
+                                                                }{" "}
+                                                                •{" "}
+                                                                {
+                                                                    request
+                                                                        .employee
+                                                                        .department
+                                                                }
+                                                            </p>
+                                                        </div>
+                                                    </div>
 
-                                            <div className="flex space-x-2 ml-4">
-                                                <Button
-                                                    onClick={() =>
-                                                        openApprovalDialog(
-                                                            request
-                                                        )
-                                                    }
-                                                    className="bg-green-600 hover:bg-green-700 text-white"
-                                                >
-                                                    <CheckCircle className="w-4 h-4 mr-2" />
-                                                    Approve
-                                                </Button>
-                                                <Button
-                                                    onClick={() =>
-                                                        openApprovalDialog(
-                                                            request
-                                                        )
-                                                    }
-                                                    variant="destructive"
-                                                >
-                                                    <XCircle className="w-4 h-4 mr-2" />
-                                                    Reject
-                                                </Button>
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                                        <div>
+                                                            <p className="text-sm font-medium text-gray-700">
+                                                                Leave Type
+                                                            </p>
+                                                            <p className="text-sm text-gray-900">
+                                                                {
+                                                                    request.leaveType
+                                                                }
+                                                            </p>
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-sm font-medium text-gray-700">
+                                                                Duration
+                                                            </p>
+                                                            <p className="text-sm text-gray-900">
+                                                                {formatDateRange(
+                                                                    request.startDate,
+                                                                    request.endDate,
+                                                                    request.days
+                                                                )}
+                                                            </p>
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-sm font-medium text-gray-700">
+                                                                Reason
+                                                            </p>
+                                                            <p className="text-sm text-gray-900">
+                                                                {request.reason}
+                                                            </p>
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-sm font-medium text-gray-700">
+                                                                Submitted
+                                                            </p>
+                                                            <p className="text-sm text-gray-900">
+                                                                {formatDate(
+                                                                    request.submittedAt
+                                                                )}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="bg-gray-50 rounded-lg p-4">
+                                                        <p className="text-sm font-medium text-gray-700 mb-2">
+                                                            Employee Leave
+                                                            Balance
+                                                        </p>
+                                                        <div className="flex space-x-4 text-sm">
+                                                            <span>
+                                                                Vacation:{" "}
+                                                                {
+                                                                    request
+                                                                        .leaveBalance
+                                                                        .vacation
+                                                                }{" "}
+                                                                days
+                                                            </span>
+                                                            <span>
+                                                                Sick:{" "}
+                                                                {
+                                                                    request
+                                                                        .leaveBalance
+                                                                        .sick
+                                                                }{" "}
+                                                                days
+                                                            </span>
+                                                            <span>
+                                                                Personal:{" "}
+                                                                {
+                                                                    request
+                                                                        .leaveBalance
+                                                                        .personal
+                                                                }{" "}
+                                                                days
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex space-x-2 ml-4">
+                                                    <Button
+                                                        onClick={() =>
+                                                            openApprovalDialog(
+                                                                request
+                                                            )
+                                                        }
+                                                        className="bg-green-600 hover:bg-green-700 text-white"
+                                                    >
+                                                        <CheckCircle className="w-4 h-4 mr-2" />
+                                                        Approve
+                                                    </Button>
+                                                    <Button
+                                                        onClick={() =>
+                                                            openApprovalDialog(
+                                                                request
+                                                            )
+                                                        }
+                                                        variant="destructive"
+                                                    >
+                                                        <XCircle className="w-4 h-4 mr-2" />
+                                                        Reject
+                                                    </Button>
+                                                </div>
                                             </div>
+                                        </motion.div>
+                                    ))
+                                ) : (
+                                    // Empty state
+                                    <div className="flex flex-col items-center justify-center py-12 text-center">
+                                        <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                                            <svg
+                                                className="w-8 h-8 text-gray-400"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                viewBox="0 0 24 24"
+                                            >
+                                                <path
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    strokeWidth={1.5}
+                                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                                                />
+                                            </svg>
                                         </div>
-                                    </motion.div>
-                                ))}
+                                        <h3 className="text-lg font-medium text-gray-900 mb-2">
+                                            No Pending Requests
+                                        </h3>
+                                        <p className="text-gray-500 mb-4">
+                                            All caught up! There are no pending
+                                            leave requests to review.
+                                        </p>
+                                        <div className="flex items-center text-sm text-gray-400">
+                                            <svg
+                                                className="w-4 h-4 mr-2"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                viewBox="0 0 24 24"
+                                            >
+                                                <path
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    strokeWidth={2}
+                                                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                                                />
+                                            </svg>
+                                            Check back later for new requests
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </CardContent>
                     </Card>
@@ -465,8 +581,11 @@ function ManagerDashboard({ auth }: ManagerDashboardProps): JSX.Element {
                                         </p>
                                         <p>
                                             <strong>Dates:</strong>{" "}
-                                            {selectedRequest.startDate} -{" "}
-                                            {selectedRequest.endDate}
+                                            {formatDateRange(
+                                                selectedRequest.startDate,
+                                                selectedRequest.endDate,
+                                                selectedRequest.days
+                                            )}
                                         </p>
                                         <p>
                                             <strong>Reason:</strong>{" "}

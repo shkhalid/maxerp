@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Head, Link } from "@inertiajs/react";
 import axios from "axios";
+import { formatDateRange } from "@/lib/dateUtils";
+import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import {
     Card,
@@ -45,9 +47,10 @@ function EmployeeDashboard({ auth }: EmployeeDashboardProps): JSX.Element {
         endDate: "",
         reason: "",
     });
-    const [leaveBalances, setLeaveBalances] = useState([]);
-    const [recentRequests, setRecentRequests] = useState([]);
+    const [leaveBalances, setLeaveBalances] = useState<any[]>([]);
+    const [recentRequests, setRecentRequests] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
+    const { toast } = useToast();
 
     // Fetch leave balances and recent requests
     useEffect(() => {
@@ -56,36 +59,56 @@ function EmployeeDashboard({ auth }: EmployeeDashboardProps): JSX.Element {
 
     const fetchLeaveData = async () => {
         try {
-            // This would be replaced with actual API calls
-            // For now, using mock data
+            setLoading(true);
+
+            // Fetch leave balances and requests in parallel
+            const [balancesResponse, requestsResponse] = await Promise.all([
+                axios.get("/api/v1/leave/balances"),
+                axios.get("/api/v1/leave/requests"),
+            ]);
+
+            if (balancesResponse.data.success) {
+                const formattedBalances = balancesResponse.data.data.map(
+                    (balance: any) => ({
+                        type:
+                            balance.leave_type.charAt(0).toUpperCase() +
+                            balance.leave_type.slice(1),
+                        total: balance.total_days,
+                        used: balance.used_days,
+                        remaining: balance.remaining_days,
+                    })
+                );
+                setLeaveBalances(formattedBalances);
+            }
+
+            if (requestsResponse.data.success) {
+                const formattedRequests = requestsResponse.data.data.map(
+                    (request: any) => ({
+                        id: request.id,
+                        type:
+                            request.leave_type.charAt(0).toUpperCase() +
+                            request.leave_type.slice(1),
+                        startDate: request.start_date,
+                        endDate: request.end_date,
+                        days: request.days_requested,
+                        status: request.status,
+                        reason: request.reason,
+                    })
+                );
+                setRecentRequests(formattedRequests);
+            }
+        } catch (error) {
+            console.error("Error fetching leave data:", error);
+            // Fallback to mock data on error
             setLeaveBalances([
                 { type: "Vacation", total: 20, used: 5, remaining: 15 },
                 { type: "Sick", total: 10, used: 2, remaining: 8 },
                 { type: "Personal", total: 5, used: 1, remaining: 4 },
             ]);
 
-            setRecentRequests([
-                {
-                    id: 1,
-                    type: "Vacation",
-                    startDate: "2024-02-15",
-                    endDate: "2024-02-20",
-                    days: 5,
-                    status: "approved",
-                    reason: "Family vacation",
-                },
-                {
-                    id: 2,
-                    type: "Sick",
-                    startDate: "2024-01-10",
-                    endDate: "2024-01-10",
-                    days: 1,
-                    status: "pending",
-                    reason: "Doctor appointment",
-                },
-            ]);
-        } catch (error) {
-            console.error("Error fetching leave data:", error);
+            setRecentRequests([]);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -93,37 +116,65 @@ function EmployeeDashboard({ auth }: EmployeeDashboardProps): JSX.Element {
         const today = new Date().toISOString().split("T")[0];
 
         if (!leaveForm.leaveType) {
-            alert("Please select a leave type");
+            toast({
+                title: "Validation Error",
+                description: "Please select a leave type",
+                variant: "destructive",
+            });
             return false;
         }
 
         if (!leaveForm.startDate) {
-            alert("Please select a start date");
+            toast({
+                title: "Validation Error",
+                description: "Please select a start date",
+                variant: "destructive",
+            });
             return false;
         }
 
         if (!leaveForm.endDate) {
-            alert("Please select an end date");
+            toast({
+                title: "Validation Error",
+                description: "Please select an end date",
+                variant: "destructive",
+            });
             return false;
         }
 
         if (leaveForm.startDate < today) {
-            alert("Start date cannot be in the past");
+            toast({
+                title: "Validation Error",
+                description: "Start date cannot be in the past",
+                variant: "destructive",
+            });
             return false;
         }
 
         if (leaveForm.endDate < today) {
-            alert("End date cannot be in the past");
+            toast({
+                title: "Validation Error",
+                description: "End date cannot be in the past",
+                variant: "destructive",
+            });
             return false;
         }
 
         if (leaveForm.endDate < leaveForm.startDate) {
-            alert("End date cannot be before start date");
+            toast({
+                title: "Validation Error",
+                description: "End date cannot be before start date",
+                variant: "destructive",
+            });
             return false;
         }
 
         if (!leaveForm.reason.trim()) {
-            alert("Please provide a reason for your leave request");
+            toast({
+                title: "Validation Error",
+                description: "Please provide a reason for your leave request",
+                variant: "destructive",
+            });
             return false;
         }
 
@@ -150,7 +201,10 @@ function EmployeeDashboard({ auth }: EmployeeDashboardProps): JSX.Element {
 
             if (response.data.success) {
                 // Show success message
-                alert("Leave request submitted successfully!");
+                toast({
+                    title: "Success",
+                    description: "Leave request submitted successfully!",
+                });
                 setShowLeaveForm(false);
                 setLeaveForm({
                     leaveType: "",
@@ -161,13 +215,42 @@ function EmployeeDashboard({ auth }: EmployeeDashboardProps): JSX.Element {
                 // Refresh data
                 fetchLeaveData();
             } else {
-                alert("Error: " + response.data.message);
+                toast({
+                    title: "Error",
+                    description: response.data.message,
+                    variant: "destructive",
+                });
             }
         } catch (error: any) {
             console.error("Error submitting leave request:", error);
-            const errorMessage =
-                error.response?.data?.message || "An error occurred";
-            alert("Error: " + errorMessage);
+            console.error("Full error response:", error.response);
+
+            let errorMessage = "An error occurred";
+
+            if (error.response?.data?.message) {
+                errorMessage = error.response.data.message;
+            } else if (error.response?.data?.errors) {
+                // Handle validation errors
+                const errors = error.response.data.errors;
+                const firstError = Object.values(errors)[0];
+                errorMessage = Array.isArray(firstError)
+                    ? firstError[0]
+                    : firstError;
+            } else if (error.response?.status === 422) {
+                errorMessage = "Validation failed. Please check your input.";
+            } else if (error.response?.status === 401) {
+                errorMessage =
+                    "You are not authenticated. Please log in again.";
+            } else if (error.response?.status === 403) {
+                errorMessage =
+                    "You don't have permission to perform this action.";
+            }
+
+            toast({
+                title: "Error",
+                description: errorMessage,
+                variant: "destructive",
+            });
         } finally {
             setLoading(false);
         }
@@ -214,32 +297,53 @@ function EmployeeDashboard({ auth }: EmployeeDashboardProps): JSX.Element {
 
                     {/* Leave Balance Cards */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                        {leaveBalances.map((balance, index) => (
-                            <motion.div
-                                key={balance.type}
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: index * 0.1 }}
-                            >
-                                <Card>
-                                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                        <CardTitle className="text-sm font-medium">
-                                            {balance.type} Leave
-                                        </CardTitle>
-                                        <Calendar className="h-4 w-4 text-muted-foreground" />
-                                    </CardHeader>
-                                    <CardContent>
-                                        <div className="text-2xl font-bold">
-                                            {balance.remaining} days
-                                        </div>
-                                        <p className="text-xs text-muted-foreground">
-                                            {balance.used} of {balance.total}{" "}
-                                            used
-                                        </p>
-                                    </CardContent>
-                                </Card>
-                            </motion.div>
-                        ))}
+                        {loading
+                            ? // Loading skeleton
+                              Array.from({ length: 3 }).map((_, index) => (
+                                  <motion.div
+                                      key={index}
+                                      initial={{ opacity: 0, y: 20 }}
+                                      animate={{ opacity: 1, y: 0 }}
+                                      transition={{ delay: index * 0.1 }}
+                                  >
+                                      <Card>
+                                          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                              <div className="h-4 bg-gray-200 rounded animate-pulse w-20"></div>
+                                              <div className="h-4 w-4 bg-gray-200 rounded animate-pulse"></div>
+                                          </CardHeader>
+                                          <CardContent>
+                                              <div className="h-8 bg-gray-200 rounded animate-pulse mb-2"></div>
+                                              <div className="h-3 bg-gray-200 rounded animate-pulse w-3/4"></div>
+                                          </CardContent>
+                                      </Card>
+                                  </motion.div>
+                              ))
+                            : leaveBalances.map((balance, index) => (
+                                  <motion.div
+                                      key={balance.type}
+                                      initial={{ opacity: 0, y: 20 }}
+                                      animate={{ opacity: 1, y: 0 }}
+                                      transition={{ delay: index * 0.1 }}
+                                  >
+                                      <Card>
+                                          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                              <CardTitle className="text-sm font-medium">
+                                                  {balance.type} Leave
+                                              </CardTitle>
+                                              <Calendar className="h-4 w-4 text-muted-foreground" />
+                                          </CardHeader>
+                                          <CardContent>
+                                              <div className="text-2xl font-bold">
+                                                  {balance.remaining} days
+                                              </div>
+                                              <p className="text-xs text-muted-foreground">
+                                                  {balance.used} of{" "}
+                                                  {balance.total} used
+                                              </p>
+                                          </CardContent>
+                                      </Card>
+                                  </motion.div>
+                              ))}
                     </div>
 
                     {/* Quick Actions */}
@@ -407,38 +511,95 @@ function EmployeeDashboard({ auth }: EmployeeDashboardProps): JSX.Element {
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-4">
-                                {recentRequests.map((request) => (
-                                    <motion.div
-                                        key={request.id}
-                                        initial={{ opacity: 0, x: -20 }}
-                                        animate={{ opacity: 1, x: 0 }}
-                                        className="flex items-center justify-between p-4 border rounded-lg"
-                                    >
-                                        <div className="flex items-center space-x-4">
-                                            {getStatusIcon(request.status)}
-                                            <div>
-                                                <p className="font-medium">
-                                                    {request.type} Leave
-                                                </p>
-                                                <p className="text-sm text-gray-600">
-                                                    {request.startDate} -{" "}
-                                                    {request.endDate} (
-                                                    {request.days} days)
-                                                </p>
-                                                <p className="text-sm text-gray-500">
-                                                    {request.reason}
-                                                </p>
+                                {loading ? (
+                                    // Loading skeleton for requests
+                                    Array.from({ length: 2 }).map(
+                                        (_, index) => (
+                                            <div
+                                                key={index}
+                                                className="flex items-center justify-between p-4 border rounded-lg"
+                                            >
+                                                <div className="flex items-center space-x-4">
+                                                    <div className="w-4 h-4 bg-gray-200 rounded-full animate-pulse"></div>
+                                                    <div>
+                                                        <div className="h-4 bg-gray-200 rounded animate-pulse w-24 mb-2"></div>
+                                                        <div className="h-3 bg-gray-200 rounded animate-pulse w-32"></div>
+                                                    </div>
+                                                </div>
+                                                <div className="h-6 bg-gray-200 rounded animate-pulse w-16"></div>
                                             </div>
-                                        </div>
-                                        <span
-                                            className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
-                                                request.status
-                                            )}`}
+                                        )
+                                    )
+                                ) : recentRequests.length > 0 ? (
+                                    recentRequests.map((request) => (
+                                        <motion.div
+                                            key={request.id}
+                                            initial={{ opacity: 0, x: -20 }}
+                                            animate={{ opacity: 1, x: 0 }}
+                                            className="flex items-center justify-between p-4 border rounded-lg"
                                         >
-                                            {request.status}
-                                        </span>
-                                    </motion.div>
-                                ))}
+                                            <div className="flex items-center space-x-4">
+                                                {getStatusIcon(request.status)}
+                                                <div>
+                                                    <p className="font-medium">
+                                                        {request.type} Leave
+                                                    </p>
+                                                    <p className="text-sm text-gray-600">
+                                                        {formatDateRange(
+                                                            request.startDate,
+                                                            request.endDate,
+                                                            request.days
+                                                        )}
+                                                    </p>
+                                                    <p className="text-sm text-gray-500">
+                                                        {request.reason}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <span
+                                                className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
+                                                    request.status
+                                                )}`}
+                                            >
+                                                {request.status}
+                                            </span>
+                                        </motion.div>
+                                    ))
+                                ) : (
+                                    // Empty state
+                                    <div className="flex flex-col items-center justify-center py-12 text-center">
+                                        <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                                            <svg
+                                                className="w-8 h-8 text-gray-400"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                viewBox="0 0 24 24"
+                                            >
+                                                <path
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    strokeWidth={1.5}
+                                                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                                                />
+                                            </svg>
+                                        </div>
+                                        <h3 className="text-lg font-medium text-gray-900 mb-2">
+                                            No Leave Requests Yet
+                                        </h3>
+                                        <p className="text-gray-500 mb-4">
+                                            You haven't submitted any leave
+                                            requests yet.
+                                        </p>
+                                        <Button
+                                            onClick={() =>
+                                                setShowLeaveForm(true)
+                                            }
+                                            className="bg-blue-600 hover:bg-blue-700"
+                                        >
+                                            Submit Your First Request
+                                        </Button>
+                                    </div>
+                                )}
                             </div>
                         </CardContent>
                     </Card>

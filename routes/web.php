@@ -41,4 +41,17 @@ Route::middleware(['auth'])->group(function () {
     // Profile
     Route::get('/profile', [ProfileController::class, 'settings'])->name('profile');
 
+    // Leave Management API Routes (using web middleware for session auth)
+    Route::prefix('api/v1')->group(function () {
+        // Employee routes
+        Route::post('leave/apply', [\App\Http\Controllers\Api\LeaveRequestController::class, 'apply']);
+        Route::get('leave/balances', [\App\Http\Controllers\Api\LeaveRequestController::class, 'balances']);
+        Route::get('leave/requests', [\App\Http\Controllers\Api\LeaveRequestController::class, 'userRequests']);
+
+        // Manager routes
+        Route::get('leave/pending', [\App\Http\Controllers\Api\LeaveRequestController::class, 'pending']);
+        Route::get('leave/on-leave-today', [\App\Http\Controllers\Api\LeaveRequestController::class, 'onLeaveToday']);
+        Route::post('leave/approve/{id}', [\App\Http\Controllers\Api\LeaveRequestController::class, 'approve']);
+    });
+
 });
