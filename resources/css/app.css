@@ -1,0 +1,22 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply bg-gradient-to-br from-blue-50 via-teal-50 to-white text-gray-900;
+  font-family: 'Inter', sans-serif;
+}
+
+@layer utilities {
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-600 via-teal-500 to-blue-700;
+  }
+  
+  .card-gradient {
+    @apply bg-gradient-to-br from-white to-blue-50;
+  }
+  
+  .gold-gradient {
+    @apply bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600;
+  }
+}

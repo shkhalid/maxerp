@@ -1,0 +1,244 @@
+# Laravel 12 Development Rules for Cursor AI
+
+## Project Information
+
+-   **Laravel Version**: 12.33.0
+-   **PHP Version**: ^8.2
+-   **Authentication**: JWT (tymon/jwt-auth)
+-   **Database**: SQLite (default)
+-   **Development Server**: Laravel Herd (https://editor-pro.test)
+
+## Critical Laravel 12 Changes to Follow
+
+### 1. **NO Kernel.php File**
+
+-   Laravel 12 does NOT use `app/Http/Kernel.php`
+-   Middleware is configured in `bootstrap/app.php`
+-   DO NOT create or reference Kernel.php files
+-   Use `bootstrap/app.php` for middleware configuration
+
+### 2. **Middleware Configuration**
+
+```php
+// In bootstrap/app.php
+$middleware->alias([
+    'auth' => \App\Http\Middleware\Authenticate::class,
+    'jwt.auth' => \Tymon\JWTAuth\Http\Middleware\Authenticate::class,
+]);
+```
+
+### 3. **Route Configuration**
+
+-   API routes go in `routes/api.php` (create if not exists)
+-   Web routes go in `routes/web.php`
+-   Use proper middleware groups: `['middleware' => 'api']` for API routes
+
+### 4. **Authentication Setup**
+
+-   JWT authentication is already configured
+-   Use `auth:api` middleware for protected routes
+-   JWT secret is already generated
+-   User model implements JWTSubject interface
+
+## Development Workflow Rules
+
+### 1. **Always Check Laravel Version First**
+
+-   Before making any changes, verify you're working with Laravel 12
+-   Check `composer.json` for framework version
+-   Use Laravel 12 specific syntax and features
+
+### 2. **Middleware Rules**
+
+-   Configure middleware in `bootstrap/app.php`, NOT in Kernel.php
+-   Use middleware aliases for cleaner route definitions
+-   JWT middleware: `jwt.auth` for authentication
+
+### 3. **Route Definitions**
+
+```php
+// API Routes (routes/api.php)
+Route::middleware(['api', 'jwt.auth'])->group(function () {
+    // Protected routes here
+});
+
+// Web Routes (routes/web.php)
+Route::middleware(['web'])->group(function () {
+    // Web routes here
+});
+```
+
+### 4. **Controller Structure**
+
+-   Use proper namespacing: `App\Http\Controllers`
+-   Implement proper validation
+-   Use JWT authentication methods
+-   Return JSON responses for API endpoints
+
+### 5. **Database Operations**
+
+-   Use Eloquent models for database operations
+-   Create migrations with `php artisan make:migration`
+-   Use factories for testing data
+-   Follow Laravel naming conventions
+
+### 6. **Authentication Flow**
+
+-   Login: `POST /api/auth/login`
+-   Register: `POST /api/auth/register`
+-   Logout: `POST /api/auth/logout`
+-   Refresh: `POST /api/auth/refresh`
+-   Profile: `GET /api/auth/user-profile`
+
+## File Structure Rules
+
+### Required Files (DO NOT CREATE)
+
+-   `app/Http/Kernel.php` - Does not exist in Laravel 12
+-   Any Kernel.php files
+
+### Required Files (CREATE IF MISSING)
+
+-   `routes/api.php` - For API routes
+-   `config/jwt.php` - JWT configuration (already published)
+
+### Configuration Files
+
+-   `config/auth.php` - Authentication configuration
+-   `bootstrap/app.php` - Application bootstrap and middleware
+-   `.env` - Environment variables
+
+## Development Commands
+
+### Never Run These Commands
+
+-   `php artisan serve` - User uses Laravel Herd
+-   Any commands that create Kernel.php files
+
+### Safe Commands to Use
+
+-   `php artisan make:controller`
+-   `php artisan make:model`
+-   `php artisan make:migration`
+-   `php artisan migrate`
+-   `php artisan route:list`
+-   `composer require` (for packages)
+
+## Code Style Rules
+
+### 1. **Use Laravel 12 Syntax**
+
+-   Use modern PHP 8.2+ features
+-   Follow PSR-12 coding standards
+-   Use type hints and return types
+-   Implement proper error handling
+
+### 2. **JWT Implementation**
+
+```php
+// Correct JWT usage
+use Tymon\JWTAuth\Facades\JWTAuth;
+use Tymon\JWTAuth\Exceptions\JWTException;
+
+// In controllers
+$token = JWTAuth::attempt($credentials);
+$user = JWTAuth::user();
+```
+
+### 3. **Response Format**
+
+```php
+// API responses should be JSON
+return response()->json([
+    'message' => 'Success',
+    'data' => $data
+], 200);
+```
+
+## Testing Rules
+
+### 1. **Test Structure**
+
+-   Use PHPUnit for testing
+-   Create feature tests for API endpoints
+-   Test JWT authentication flow
+-   Use factories for test data
+
+### 2. **API Testing**
+
+```php
+// Test JWT authentication
+$response = $this->postJson('/api/auth/login', [
+    'email' => 'test@example.com',
+    'password' => 'password'
+]);
+```
+
+## Security Rules
+
+### 1. **JWT Security**
+
+-   Use strong JWT secret
+-   Implement token refresh
+-   Handle token expiration
+-   Validate all inputs
+
+### 2. **Input Validation**
+
+-   Always validate request data
+-   Use Laravel validation rules
+-   Sanitize user inputs
+-   Implement rate limiting
+
+## Common Mistakes to Avoid
+
+1. **DO NOT** create Kernel.php files
+2. **DO NOT** use old Laravel syntax
+3. **DO NOT** run `php artisan serve`
+4. **DO NOT** use session-based auth for API
+5. **DO NOT** forget to implement JWTSubject interface
+6. **DO NOT** use outdated middleware syntax
+
+## Environment Setup
+
+### Required Environment Variables
+
+```
+AUTH_GUARD=api
+JWT_SECRET=your-secret-key
+DB_CONNECTION=sqlite
+DB_DATABASE=/path/to/database.sqlite
+```
+
+### Development Server
+
+-   Use Laravel Herd at https://editor-pro.test
+-   Do not run `php artisan serve`
+-   Access API at https://editor-pro.test/api/
+
+## Package Management
+
+### Installed Packages
+
+-   `tymon/jwt-auth` - JWT authentication
+-   `laravel/framework` - Laravel 12.33.0
+
+### Adding New Packages
+
+-   Use `composer require` for PHP packages
+-   Use `npm install` for JavaScript packages
+-   Always check compatibility with Laravel 12
+
+## Documentation References
+
+-   Laravel 12 Documentation: https://laravel.com/docs/12.x
+-   JWT Auth Documentation: https://jwt-auth.readthedocs.io/
+-   Laravel Herd: https://herd.laravel.com/
+
+## Remember
+
+-   This is Laravel 12, not Laravel 11 or earlier
+-   Follow modern Laravel practices
+-   Use JWT for API authentication
+-   Configure everything in bootstrap/app.php
+-   Never create Kernel.php files
