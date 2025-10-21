@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Head, Link } from "@inertiajs/react";
+import axios from "axios";
 import { Button } from "@/components/ui/button";
 import {
     Card,
@@ -44,42 +45,132 @@ function EmployeeDashboard({ auth }: EmployeeDashboardProps): JSX.Element {
         endDate: "",
         reason: "",
     });
+    const [leaveBalances, setLeaveBalances] = useState([]);
+    const [recentRequests, setRecentRequests] = useState([]);
+    const [loading, setLoading] = useState(false);
 
-    // Mock data for leave balances
-    const leaveBalances = [
-        { type: "Vacation", total: 20, used: 5, remaining: 15 },
-        { type: "Sick", total: 10, used: 2, remaining: 8 },
-        { type: "Personal", total: 5, used: 1, remaining: 4 },
-    ];
+    // Fetch leave balances and recent requests
+    useEffect(() => {
+        fetchLeaveData();
+    }, []);
 
-    // Mock data for recent requests
-    const recentRequests = [
-        {
-            id: 1,
-            type: "Vacation",
-            startDate: "2024-02-15",
-            endDate: "2024-02-20",
-            days: 5,
-            status: "approved",
-            reason: "Family vacation",
-        },
-        {
-            id: 2,
-            type: "Sick",
-            startDate: "2024-01-10",
-            endDate: "2024-01-10",
-            days: 1,
-            status: "pending",
-            reason: "Doctor appointment",
-        },
-    ];
+    const fetchLeaveData = async () => {
+        try {
+            // This would be replaced with actual API calls
+            // For now, using mock data
+            setLeaveBalances([
+                { type: "Vacation", total: 20, used: 5, remaining: 15 },
+                { type: "Sick", total: 10, used: 2, remaining: 8 },
+                { type: "Personal", total: 5, used: 1, remaining: 4 },
+            ]);
 
-    const handleSubmitLeave = (e: React.FormEvent) => {
+            setRecentRequests([
+                {
+                    id: 1,
+                    type: "Vacation",
+                    startDate: "2024-02-15",
+                    endDate: "2024-02-20",
+                    days: 5,
+                    status: "approved",
+                    reason: "Family vacation",
+                },
+                {
+                    id: 2,
+                    type: "Sick",
+                    startDate: "2024-01-10",
+                    endDate: "2024-01-10",
+                    days: 1,
+                    status: "pending",
+                    reason: "Doctor appointment",
+                },
+            ]);
+        } catch (error) {
+            console.error("Error fetching leave data:", error);
+        }
+    };
+
+    const validateLeaveForm = () => {
+        const today = new Date().toISOString().split("T")[0];
+
+        if (!leaveForm.leaveType) {
+            alert("Please select a leave type");
+            return false;
+        }
+
+        if (!leaveForm.startDate) {
+            alert("Please select a start date");
+            return false;
+        }
+
+        if (!leaveForm.endDate) {
+            alert("Please select an end date");
+            return false;
+        }
+
+        if (leaveForm.startDate < today) {
+            alert("Start date cannot be in the past");
+            return false;
+        }
+
+        if (leaveForm.endDate < today) {
+            alert("End date cannot be in the past");
+            return false;
+        }
+
+        if (leaveForm.endDate < leaveForm.startDate) {
+            alert("End date cannot be before start date");
+            return false;
+        }
+
+        if (!leaveForm.reason.trim()) {
+            alert("Please provide a reason for your leave request");
+            return false;
+        }
+
+        return true;
+    };
+
+    const handleSubmitLeave = async (e: React.FormEvent) => {
         e.preventDefault();
-        // Handle leave request submission
-        console.log("Submitting leave request:", leaveForm);
-        setShowLeaveForm(false);
-        setLeaveForm({ leaveType: "", startDate: "", endDate: "", reason: "" });
+
+        // Frontend validation
+        if (!validateLeaveForm()) {
+            return;
+        }
+
+        setLoading(true);
+
+        try {
+            const response = await axios.post("/api/v1/leave/apply", {
+                leave_type: leaveForm.leaveType,
+                start_date: leaveForm.startDate,
+                end_date: leaveForm.endDate,
+                reason: leaveForm.reason,
+            });
+
+            if (response.data.success) {
+                // Show success message
+                alert("Leave request submitted successfully!");
+                setShowLeaveForm(false);
+                setLeaveForm({
+                    leaveType: "",
+                    startDate: "",
+                    endDate: "",
+                    reason: "",
+                });
+                // Refresh data
+                fetchLeaveData();
+            } else {
+                alert("Error: " + response.data.message);
+            }
+        } catch (error: any) {
+            console.error("Error submitting leave request:", error);
+            const errorMessage =
+                error.response?.data?.message || "An error occurred";
+            alert("Error: " + errorMessage);
+        } finally {
+            setLoading(false);
+        }
     };
 
     const getStatusIcon = (status: string) => {
@@ -215,12 +306,25 @@ function EmployeeDashboard({ auth }: EmployeeDashboardProps): JSX.Element {
                                                 id="startDate"
                                                 type="date"
                                                 value={leaveForm.startDate}
-                                                onChange={(e) =>
+                                                onChange={(e) => {
+                                                    const newStartDate =
+                                                        e.target.value;
                                                     setLeaveForm({
                                                         ...leaveForm,
-                                                        startDate:
-                                                            e.target.value,
-                                                    })
+                                                        startDate: newStartDate,
+                                                        // Clear end date if it's before the new start date
+                                                        endDate:
+                                                            leaveForm.endDate &&
+                                                            leaveForm.endDate <
+                                                                newStartDate
+                                                                ? ""
+                                                                : leaveForm.endDate,
+                                                    });
+                                                }}
+                                                min={
+                                                    new Date()
+                                                        .toISOString()
+                                                        .split("T")[0]
                                                 }
                                                 required
                                             />
@@ -240,6 +344,12 @@ function EmployeeDashboard({ auth }: EmployeeDashboardProps): JSX.Element {
                                                         ...leaveForm,
                                                         endDate: e.target.value,
                                                     })
+                                                }
+                                                min={
+                                                    leaveForm.startDate ||
+                                                    new Date()
+                                                        .toISOString()
+                                                        .split("T")[0]
                                                 }
                                                 required
                                             />
@@ -275,8 +385,11 @@ function EmployeeDashboard({ auth }: EmployeeDashboardProps): JSX.Element {
                                         <Button
                                             type="submit"
                                             className="bg-blue-600 hover:bg-blue-700"
+                                            disabled={loading}
                                         >
-                                            Submit Request
+                                            {loading
+                                                ? "Submitting..."
+                                                : "Submit Request"}
                                         </Button>
                                     </div>
                                 </form>

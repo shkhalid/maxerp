@@ -75,14 +75,19 @@ function Landing({ auth }: LandingProps): JSX.Element {
                             >
                                 <Button
                                     onClick={() =>
-                                        router.visit("/login", {
-                                            preserveScroll: true,
-                                        })
+                                        router.visit(
+                                            auth.user ? "/dashboard" : "/login",
+                                            {
+                                                preserveScroll: true,
+                                            }
+                                        )
                                     }
                                     size="lg"
                                     className="bg-gradient-to-r from-blue-600 to-teal-600 hover:from-blue-700 hover:to-teal-700 text-white px-8 py-6 text-lg rounded-xl shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300"
                                 >
-                                    Get Started
+                                    {auth.user
+                                        ? "Go to Dashboard"
+                                        : "Get Started"}
                                     <ArrowRight className="ml-2 h-5 w-5" />
                                 </Button>
                             </motion.div>

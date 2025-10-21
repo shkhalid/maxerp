@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Head } from "@inertiajs/react";
+import axios from "axios";
 import { Button } from "@/components/ui/button";
 import {
     Card,
@@ -36,59 +37,120 @@ interface ManagerDashboardProps {
 function ManagerDashboard({ auth }: ManagerDashboardProps): JSX.Element {
     const [selectedRequest, setSelectedRequest] = useState<any>(null);
     const [showApprovalDialog, setShowApprovalDialog] = useState(false);
+    const [pendingRequests, setPendingRequests] = useState([]);
+    const [loading, setLoading] = useState(false);
 
-    // Mock data for pending requests
-    const pendingRequests = [
-        {
-            id: 1,
-            employee: {
-                name: "John Doe",
-                email: "john@company.com",
-                department: "Engineering",
-            },
-            leaveType: "Vacation",
-            startDate: "2024-02-15",
-            endDate: "2024-02-20",
-            days: 5,
-            reason: "Family vacation",
-            submittedAt: "2024-01-15",
-            leaveBalance: {
-                vacation: 15,
-                sick: 8,
-                personal: 4,
-            },
-        },
-        {
-            id: 2,
-            employee: {
-                name: "Jane Smith",
-                email: "jane@company.com",
-                department: "Marketing",
-            },
-            leaveType: "Sick",
-            startDate: "2024-01-25",
-            endDate: "2024-01-25",
-            days: 1,
-            reason: "Doctor appointment",
-            submittedAt: "2024-01-20",
-            leaveBalance: {
-                vacation: 12,
-                sick: 7,
-                personal: 3,
-            },
-        },
-    ];
+    // Fetch pending requests
+    useEffect(() => {
+        fetchPendingRequests();
+    }, []);
 
-    const handleApprove = (requestId: number) => {
-        console.log("Approving request:", requestId);
-        setShowApprovalDialog(false);
-        setSelectedRequest(null);
+    const fetchPendingRequests = async () => {
+        try {
+            const response = await axios.get("/api/v1/leave/pending");
+            if (response.data.success) {
+                setPendingRequests(response.data.data);
+            }
+        } catch (error) {
+            console.error("Error fetching pending requests:", error);
+            // Fallback to mock data
+            setPendingRequests([
+                {
+                    id: 1,
+                    employee: {
+                        name: "John Doe",
+                        email: "john@company.com",
+                        department: "Engineering",
+                    },
+                    leaveType: "Vacation",
+                    startDate: "2024-02-15",
+                    endDate: "2024-02-20",
+                    days: 5,
+                    reason: "Family vacation",
+                    submittedAt: "2024-01-15",
+                    leaveBalance: {
+                        vacation: 15,
+                        sick: 8,
+                        personal: 4,
+                    },
+                },
+                {
+                    id: 2,
+                    employee: {
+                        name: "Jane Smith",
+                        email: "jane@company.com",
+                        department: "Marketing",
+                    },
+                    leaveType: "Sick",
+                    startDate: "2024-01-25",
+                    endDate: "2024-01-25",
+                    days: 1,
+                    reason: "Doctor appointment",
+                    submittedAt: "2024-01-20",
+                    leaveBalance: {
+                        vacation: 12,
+                        sick: 7,
+                        personal: 3,
+                    },
+                },
+            ]);
+        }
     };
 
-    const handleReject = (requestId: number) => {
-        console.log("Rejecting request:", requestId);
-        setShowApprovalDialog(false);
-        setSelectedRequest(null);
+    const handleApprove = async (requestId: number) => {
+        setLoading(true);
+        try {
+            const response = await axios.post(
+                `/api/v1/leave/approve/${requestId}`,
+                {
+                    action: "approve",
+                }
+            );
+
+            if (response.data.success) {
+                alert("Leave request approved successfully!");
+                setShowApprovalDialog(false);
+                setSelectedRequest(null);
+                fetchPendingRequests(); // Refresh the list
+            } else {
+                alert("Error: " + response.data.message);
+            }
+        } catch (error: any) {
+            console.error("Error approving request:", error);
+            const errorMessage =
+                error.response?.data?.message || "An error occurred";
+            alert("Error: " + errorMessage);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleReject = async (requestId: number) => {
+        setLoading(true);
+        try {
+            const response = await axios.post(
+                `/api/v1/leave/approve/${requestId}`,
+                {
+                    action: "reject",
+                }
+            );
+
+            if (response.data.success) {
+                alert("Leave request rejected successfully!");
+                setShowApprovalDialog(false);
+                setSelectedRequest(null);
+                fetchPendingRequests(); // Refresh the list
+            } else {
+                alert("Error: " + response.data.message);
+            }
+        } catch (error: any) {
+            console.error("Error rejecting request:", error);
+            const errorMessage =
+                error.response?.data?.message || "An error occurred";
+            alert("Error: " + errorMessage);
+        } finally {
+            setLoading(false);
+        }
     };
 
     const openApprovalDialog = (request: any) => {

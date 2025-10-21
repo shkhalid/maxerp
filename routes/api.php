@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\LeaveRequestController;
 use App\Http\Controllers\AuthController;
 use Illuminate\Support\Facades\Route;
 
@@ -23,6 +24,16 @@ Route::prefix('v1')->group(function () {
         Route::post('logout', [AuthController::class, 'logout'])->middleware('jwt.auth');
         Route::post('refresh', [AuthController::class, 'refresh'])->middleware('jwt.auth');
         Route::get('profile', [AuthController::class, 'userProfile'])->middleware('jwt.auth');
+    });
+
+    // Leave Management Routes (Session-based auth)
+    Route::middleware(['auth'])->group(function () {
+        // Employee routes
+        Route::post('leave/apply', [LeaveRequestController::class, 'apply']);
+
+        // Manager routes
+        Route::get('leave/pending', [LeaveRequestController::class, 'pending']);
+        Route::post('leave/approve/{id}', [LeaveRequestController::class, 'approve']);
     });
 
 });

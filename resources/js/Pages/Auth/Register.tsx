@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Head, Link, useForm } from "@inertiajs/react";
+import { useState, useEffect } from "react";
+import { Head, Link, useForm, router } from "@inertiajs/react";
 import { Button } from "@/components/ui/button";
 import {
     Card,
@@ -18,6 +18,13 @@ interface RegisterProps {
 
 function Register({ auth }: RegisterProps): JSX.Element {
     const [showPassword, setShowPassword] = useState(false);
+
+    // Redirect if already logged in
+    useEffect(() => {
+        if (auth.user) {
+            router.visit("/dashboard");
+        }
+    }, [auth.user]);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const { data, setData, post, processing, errors } = useForm({
         name: "",
