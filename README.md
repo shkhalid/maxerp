@@ -353,13 +353,23 @@ This project includes a `.cursorrules` file that provides specific instructions 
 
 ## Testing
 
-The project includes comprehensive tests for:
+### Backend Testing
 
--   User registration
--   User login
--   User logout
--   Protected route access
--   Authentication requirements
--   Session management
+-   **Unit Tests**: `php artisan test tests/Unit/`
+-   **Feature Tests**: `php artisan test tests/Feature/`
+-   **Test Coverage**: Leave validation, API endpoints, authentication
 
-All tests are passing and demonstrate the session-based authentication system is working correctly.
+### Frontend Testing
+
+-   **Cypress E2E Tests**: `npm run test:e2e`
+-   **Interactive Mode**: `npm run cypress:open`
+-   **Test Coverage**: Form validation, user workflows, API integration
+-   **Documentation**: See [FRONTEND_TESTING.md](./FRONTEND_TESTING.md) for complete guide
+
+### Test Runner
+
+-   **All Tests**: `./run-tests.sh`
+-   **Backend Only**: `php artisan test`
+-   **Frontend Only**: `npm run test:e2e`
+
+All tests are passing and demonstrate the complete system is working correctly.

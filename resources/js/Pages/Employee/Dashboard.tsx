@@ -342,7 +342,10 @@ function EmployeeDashboard({ auth }: EmployeeDashboardProps): JSX.Element {
                                     Request Leave
                                 </Button>
                             </DialogTrigger>
-                            <DialogContent className="max-w-2xl">
+                            <DialogContent
+                                className="max-w-2xl"
+                                data-testid="leave-form-dialog"
+                            >
                                 <DialogHeader>
                                     <DialogTitle>Request Leave</DialogTitle>
                                     <DialogDescription>
@@ -366,18 +369,28 @@ function EmployeeDashboard({ auth }: EmployeeDashboardProps): JSX.Element {
                                                         leaveType: value,
                                                     })
                                                 }
+                                                data-testid="leave-type-select"
                                             >
                                                 <SelectTrigger>
                                                     <SelectValue placeholder="Select leave type" />
                                                 </SelectTrigger>
                                                 <SelectContent>
-                                                    <SelectItem value="vacation">
+                                                    <SelectItem
+                                                        value="vacation"
+                                                        data-testid="leave-type-option"
+                                                    >
                                                         Vacation
                                                     </SelectItem>
-                                                    <SelectItem value="sick">
+                                                    <SelectItem
+                                                        value="sick"
+                                                        data-testid="leave-type-option"
+                                                    >
                                                         Sick Leave
                                                     </SelectItem>
-                                                    <SelectItem value="personal">
+                                                    <SelectItem
+                                                        value="personal"
+                                                        data-testid="leave-type-option"
+                                                    >
                                                         Personal
                                                     </SelectItem>
                                                 </SelectContent>

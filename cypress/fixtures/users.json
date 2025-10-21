@@ -1,0 +1,14 @@
+{
+    "employee": {
+        "name": "Test Employee",
+        "email": "employee@company.com",
+        "password": "password",
+        "role": "employee"
+    },
+    "manager": {
+        "name": "Test Manager",
+        "email": "manager@company.com",
+        "password": "password",
+        "role": "manager"
+    }
+}

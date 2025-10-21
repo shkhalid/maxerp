@@ -5,7 +5,15 @@
     "private": true,
     "scripts": {
         "build": "vite build",
-        "dev": "vite"
+        "dev": "vite",
+        "cypress:open": "cypress open",
+        "cypress:run": "cypress run",
+        "cypress:run:electron": "cypress run --browser electron",
+        "cypress:run:firefox": "cypress run --browser firefox",
+        "cypress:run:chrome": "cypress run --browser chrome",
+        "test:e2e": "cypress run --browser electron",
+        "test:e2e:headless": "cypress run --headless --browser electron",
+        "test:all": "./run-tests.sh"
     },
     "dependencies": {
         "@inertiajs/react": "^1.0.0",
@@ -45,6 +53,7 @@
         "autoprefixer": "^10.4.16",
         "axios": "^1.11.0",
         "concurrently": "^9.0.1",
+        "cypress": "^15.5.0",
         "eslint": "^8.57.1",
         "eslint-config-react-app": "^7.0.1",
         "laravel-vite-plugin": "^2.0.0",
