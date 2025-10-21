@@ -1,6 +1,6 @@
 # MaxERP - Laravel 12 Web Application
 
-This is a Laravel 12 project with simple session-based authentication for managing money committees (Kametis).
+This is a Laravel 12 project with simple session-based authentication for managing application.
 
 ## Project Information
 
@@ -18,7 +18,6 @@ This is a Laravel 12 project with simple session-based authentication for managi
 -   **Tailwind CSS** - Utility-first CSS framework with custom components
 -   **Radix UI Components** - Accessible, unstyled UI components
 -   **User Registration & Login** - Complete authentication flow
--   **Money Committee Management** - Create and manage Kametis (rotating savings groups)
 -   **Protected Routes** - Secure web routes with authentication
 -   **Responsive Design** - Mobile-friendly interface
 
@@ -36,9 +35,6 @@ This is a Laravel 12 project with simple session-based authentication for managi
 
 -   `GET /` - Landing page
 -   `GET /dashboard` - User dashboard (protected)
--   `GET /kametis` - List user's Kametis (protected)
--   `GET /kametis/create` - Create new Kameti (protected)
--   `GET /kametis/{id}/details` - View Kameti details (protected)
 
 ## Development
 
